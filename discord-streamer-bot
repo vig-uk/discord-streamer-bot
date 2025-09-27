@@ -1,0 +1,42 @@
+import discord
+import requests
+import json
+import re
+import os
+
+# Get config from environment variables (NO ACTUAL VALUES HERE)
+BOT_TOKEN = os.getenv('BOT_TOKEN')
+WEBHOOK_URL = os.getenv('WEBHOOK_URL') 
+MOD_USER_IDS = os.getenv('MOD_USER_IDS', '').split(',')
+
+client = discord.Client(intents=discord.Intents.all())
+
+@client.event
+async def on_ready():
+    print(f'{client.user} has connected to Discord!')
+
+@client.event
+async def on_reaction_add(reaction, user):
+    if str(user.id) in MOD_USER_IDS and str(reaction.emoji) == '✅':
+        if reaction.message.author.bot:
+            message_content = reaction.message.content
+            print(f"Processing message: {message_content}")
+            
+            tts_match = re.search(r'TTS#\s*(\d+)', message_content)
+            filename = f"{tts_match.group(1)}.txt" if tts_match else None
+            
+            data = {
+                "message_content": message_content,
+                "user_id": str(user.id),
+                "channel_id": str(reaction.message.channel.id),
+                "emoji": str(reaction.emoji),
+                "filename": filename
+            }
+            
+            try:
+                response = requests.post(WEBHOOK_URL, json=data)
+                print(f"Sent to n8n: {response.status_code}")
+            except Exception as e:
+                print(f"Error: {e}")
+
+client.run(BOT_TOKEN)
