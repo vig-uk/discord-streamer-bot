@@ -4,10 +4,27 @@ import json
 import re
 import os
 
-# Get config from environment variables (NO ACTUAL VALUES HERE)
-BOT_TOKEN = os.getenv('BOT_TOKEN')
-WEBHOOK_URL = os.getenv('WEBHOOK_URL') 
-MOD_USER_IDS = os.getenv('MOD_USER_IDS', '').split(',')
+# Read from .env file
+def load_env():
+    env_vars = {}
+    try:
+        with open('.env', 'r') as f:
+            for line in f:
+                if '=' in line and not line.startswith('#'):
+                    key, value = line.strip().split('=', 1)
+                    env_vars[key] = value
+    except FileNotFoundError:
+        print("Warning: .env file not found")
+    return env_vars
+
+# Load configuration
+env = load_env()
+BOT_TOKEN = env.get('BOT_TOKEN')
+WEBHOOK_URL = env.get('WEBHOOK_URL')
+MOD_USER_IDS = env.get('MOD_USER_IDS', '').split(',')
+
+print(f"Bot starting with webhook: {WEBHOOK_URL}")
+print(f"Monitoring users: {MOD_USER_IDS}")
 
 client = discord.Client(intents=discord.Intents.all())
 
@@ -35,8 +52,11 @@ async def on_reaction_add(reaction, user):
             
             try:
                 response = requests.post(WEBHOOK_URL, json=data)
-                print(f"Sent to n8n: {response.status_code}")
+                print(f"✅ Sent to n8n: {response.status_code}")
             except Exception as e:
-                print(f"Error: {e}")
+                print(f"❌ Error: {e}")
 
-client.run(BOT_TOKEN)
+if BOT_TOKEN:
+    client.run(BOT_TOKEN)
+else:
+    print("❌ No BOT_TOKEN found in .env file")
